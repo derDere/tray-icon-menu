@@ -2,28 +2,50 @@
 """
 
 
-#from config import CmdMenuConfig, ConfigObject, CmdEntryConfig, CmdTextConfig, loads_config
-
+import os
+from pathlib import Path
 import pystray
-
 from PIL import Image, ImageDraw
+from config import CmdConfigBase, CmdEntryConfig, CmdMenuConfig, CmdTextConfig
+
+
+class Config(CmdConfigBase):
+  """The configuration class.
+  """
+  def __init__(self):
+    super().__init__(self._get_conf_path())
+
+  def _to_json_obj(self) -> list | str | dict | None:
+    return super()._to_json_obj()
+
+  def _from_json_obj(self, json_obj: list | str | dict | None) -> None:
+    return super()._from_json_obj(json_obj)
+
+  def _get_conf_path(self) -> str:
+    """Returns the path to the configuration file.
+    """
+    path = "~/.config/cmdmenu/cmds.json"
+    path = path.replace("~", str(Path.home()))
+    return path
+
 
 
 class App:
   """The main application class.
   """
 
+  icon:pystray.Icon
+
   def __init__(self):
-    #self.config:CmdMenuConfig = None
+    self.config:Config = Config()
     self.exit_code:int = -1
 
   def run(self, *_) -> None:
     """Runs the application.
     """
 
-    _ = """
     # Load the config
-    jj = ""
+    jj = """
     {
       "T1": ["Line1", "Line2", {"date": "/t"}],
       "SubMenu": {
@@ -32,7 +54,8 @@ class App:
       },
       "Cmd2": "echo lol2&read"
     }
-    ""
+    """
+    _ = """
     print(jj)
     self.config = loads_config(jj)
 
@@ -50,15 +73,47 @@ class App:
       printobj(itm)
     """
 
-    menu = pystray.Menu(
-      pystray.MenuItem('Exit', lambda: icon.stop()),
-    )
+    self.config.loads(jj)
+    items = []
 
-    icon = pystray.Icon('test name', icon=create_image(), menu=menu)
-    icon.run()
-    icon.stop()
+    for itm in self.config.root_menu.items:
+      items += self._cmd_obj_to_menu_item(itm)
+
+    items.append(pystray.MenuItem('─' * 20, None, enabled=False))
+    items.append(pystray.MenuItem('Exit', self.stop))
+    menu = pystray.Menu(*items)
+
+    self.icon = pystray.Icon('test name', icon=create_image(), menu=menu)
+    self.icon.run()
 
     self.exit_code = 0
+
+  def _cmd_obj_to_menu_item(self, cmd_obj) -> list[pystray.MenuItem]:
+    """Converts a command object to a menu item.
+    """
+    if isinstance(cmd_obj, CmdTextConfig):
+      return list(map(lambda line: pystray.MenuItem(line, None, enabled=False), str(cmd_obj).split("\n")))
+
+    if isinstance(cmd_obj, CmdMenuConfig):
+      items = []
+      for itm in cmd_obj.items:
+        items += self._cmd_obj_to_menu_item(itm)
+      return [pystray.MenuItem(cmd_obj.key, pystray.Menu(*items))]
+
+    if isinstance(cmd_obj, CmdEntryConfig):
+      return [pystray.MenuItem(cmd_obj.key, lambda: self._menuitem_clicked(cmd_obj))]
+
+    return []
+
+  def _menuitem_clicked(self, item) -> None:
+    """Called when a menu item is clicked.
+    """
+    os.system(item.cmd)
+
+  def stop(self) -> None:
+    """Stops the application.
+    """
+    self.icon.stop()
 
 
 def create_image():
