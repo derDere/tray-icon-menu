@@ -47,30 +47,21 @@ class App:
     # Load the config
     jj = """
     {
-      "T1": ["Line1", "Line2", {"date": "/t"}],
+      "T1": ["Line1", "Line2", {"date": "/t", "time": "/t"}],
       "SubMenu": {
         "T3": ["Line3", "Line4"],
-        "Cmd1": "echo lol1"
+        "Cmd1": "echo lol1",
+        "SubMenu": {
+          "T3": ["Line3", "Line4"],
+          "Cmd1": "echo lol1",
+          "SubMenu": {
+            "T3": ["Line3", "Line4"],
+            "Cmd1": "echo lol1"
+          }
+        }
       },
       "Cmd2": "echo lol2&read"
     }
-    """
-    _ = """
-    print(jj)
-    self.config = loads_config(jj)
-
-    for itm in self.config.items:
-      print(type(itm).__name__, itm.key)
-
-    print("#####################################################")
-
-    # Print the config
-    print(self.config.to_json_str())
-
-    print("#####################################################")
-
-    for itm in self.config.items:
-      printobj(itm)
     """
 
     self.config.loads(jj)
@@ -79,14 +70,21 @@ class App:
     for itm in self.config.root_menu.items:
       items += self._cmd_obj_to_menu_item(itm)
 
-    items.append(pystray.MenuItem('─' * 20, None, enabled=False))
+    items.append(pystray.Menu.SEPARATOR)
+    items.append(pystray.MenuItem('Open Menu', self._open_menu, default=True, visible=False))
     items.append(pystray.MenuItem('Exit', self.stop))
-    menu = pystray.Menu(*items)
+    menu:pystray.Menu = pystray.Menu(*items)
 
-    self.icon = pystray.Icon('test name', icon=create_image(), menu=menu)
+    self.icon = pystray.Icon('Command Menu', title="Command Menu", icon=create_image(), menu=menu)
     self.icon.run()
 
     self.exit_code = 0
+
+  def _open_menu(self) -> None:
+    """Opens the menu.
+    """
+    # this is temporary to update the menu untill there are more feature for that beafiour in the libary
+    self.icon.update_menu()
 
   def _cmd_obj_to_menu_item(self, cmd_obj) -> list[pystray.MenuItem]:
     """Converts a command object to a menu item.
