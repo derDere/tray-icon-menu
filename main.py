@@ -2,7 +2,11 @@
 """
 
 
-from config import CmdMenuConfig, ConfigObject, CmdEntryConfig, CmdTextConfig, loads_config
+#from config import CmdMenuConfig, ConfigObject, CmdEntryConfig, CmdTextConfig, loads_config
+
+import pystray
+
+from PIL import Image, ImageDraw
 
 
 class App:
@@ -10,15 +14,16 @@ class App:
   """
 
   def __init__(self):
-    self.config:CmdMenuConfig = None
+    #self.config:CmdMenuConfig = None
     self.exit_code:int = -1
 
   def run(self, *_) -> None:
     """Runs the application.
     """
 
+    _ = """
     # Load the config
-    jj = """
+    jj = ""
     {
       "T1": ["Line1", "Line2", {"date": "/t"}],
       "SubMenu": {
@@ -27,7 +32,7 @@ class App:
       },
       "Cmd2": "echo lol2&read"
     }
-    """
+    ""
     print(jj)
     self.config = loads_config(jj)
 
@@ -43,14 +48,43 @@ class App:
 
     for itm in self.config.items:
       printobj(itm)
+    """
+
+    menu = pystray.Menu(
+      pystray.MenuItem('Exit', lambda: icon.stop()),
+    )
+
+    icon = pystray.Icon('test name', icon=create_image(), menu=menu)
+    icon.run()
+    icon.stop()
 
     self.exit_code = 0
 
 
-def printobj(obj:ConfigObject) -> None:
-  """Prints the object.
+def create_image():
+  """Generate an image and draw a pattern
   """
-  print(str(obj))
+  SIZE = 24
+  MARGINX = 3
+  MARGINY = 5
+  HEIGHT = 3
+  PADDING = 1
+  image = Image.new('RGBA', (SIZE, SIZE), 'rgba(0,0,0,0)')
+  dc = ImageDraw.Draw(image)
+  for i in range(5):
+    if i % 2 == 0:
+      x0 = MARGINX
+      x1 = SIZE - MARGINX
+      y0 = MARGINY + (i * HEIGHT)
+      y1 = MARGINY + ((i + 1) * HEIGHT)
+      dc.rectangle([x0, y0, x1, y1], fill='rgba(0,0,0,128)')
+
+      x0 = MARGINX + PADDING
+      x1 = SIZE - MARGINX - PADDING
+      y0 = MARGINY + (i * HEIGHT) + PADDING
+      y1 = MARGINY + ((i + 1) * HEIGHT) - PADDING
+      dc.rectangle([x0, y0, x1, y1], fill='white')
+  return image
 
 
 def main(*args) -> int:
