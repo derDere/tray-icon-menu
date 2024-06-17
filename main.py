@@ -2,7 +2,9 @@
 """
 
 
+from itertools import combinations
 import os
+import re
 from pathlib import Path
 import pystray
 from PIL import Image, ImageDraw
@@ -15,17 +17,20 @@ class Config(CmdConfigBase):
   def __init__(self):
     super().__init__(self._get_conf_path())
 
-  def _to_json_obj(self) -> list | str | dict | None:
+  def _to_json_obj(self) -> list|str|dict|None:
     return super()._to_json_obj()
 
-  def _from_json_obj(self, json_obj: list | str | dict | None) -> None:
+  def _from_json_obj(self, json_obj:list|str|dict|None) -> None:
     return super()._from_json_obj(json_obj)
 
   def _get_conf_path(self) -> str:
     """Returns the path to the configuration file.
     """
-    path = "~/.config/cmdmenu/cmds.json"
+    path = "~/.config/cmdmenu/"
     path = path.replace("~", str(Path.home()))
+    if not os.path.exists(path):
+      os.makedirs(path)
+    path += "cmds.json"
     return path
 
 
@@ -44,27 +49,30 @@ class App:
     """Runs the application.
     """
 
-    # Load the config
-    jj = """
-    {
-      "T1": ["Line1", "Line2", {"date": "/t", "time": "/t"}],
-      "SubMenu": {
-        "T3": ["Line3", "Line4"],
-        "Cmd1": "echo lol1",
-        "SubMenu": {
-          "T3": ["Line3", "Line4"],
-          "Cmd1": "echo lol1",
-          "SubMenu": {
-            "T3": ["Line3", "Line4"],
-            "Cmd1": "echo lol1"
-          }
-        }
-      },
-      "Cmd2": "echo lol2&read"
-    }
-    """
+    # # Load the config
+    # jj = """
+    # {
+    #   "T1": ["Line1", "Line2", {"date": "/t", "time": "/t"}],
+    #   "SubMenu": {
+    #     "T3": ["Line3", "Line4"],
+    #     "Cmd1": "echo lol1",
+    #     "SubMenu": {
+    #       "T3": ["Line3", "Line4"],
+    #       "Cmd1": "echo lol1",
+    #       "SubMenu": {
+    #         "T3": ["Line3", "Line4"],
+    #         "Cmd1": "echo lol1"
+    #       }
+    #     }
+    #   },
+    #   "Cmd2": "echo lol2&read"
+    # }
+    # """
 
-    self.config.loads(jj)
+    # self.config.loads(jj)
+
+    self.config.reload()
+
     items = []
 
     for itm in self.config.root_menu.items:
@@ -90,7 +98,10 @@ class App:
     """Converts a command object to a menu item.
     """
     if isinstance(cmd_obj, CmdTextConfig):
-      return list(map(lambda line: pystray.MenuItem(line, None, enabled=False), str(cmd_obj).split("\n")))
+      if (re.match(r"^(\s*)([-]{3,})(\s*)$", str(cmd_obj))):
+        return [pystray.Menu.SEPARATOR]
+      else:
+        return list(map(lambda line: pystray.MenuItem(line, None, enabled=False), str(cmd_obj).split("\n")))
 
     if isinstance(cmd_obj, CmdMenuConfig):
       items = []
